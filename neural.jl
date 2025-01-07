@@ -1,3 +1,6 @@
+###################################################################################################################
+#Prepare training data
+
 using Flux.Zygote
 
 function read_sim_data(dir)
@@ -18,23 +21,6 @@ function read_sim_data(dir)
     ρ_profiles, c1_profiles, ϕ_profiles
 end
 
-function generate_windows(ρ; window_bins)
-    ρ_windows = Zygote.Buffer(zeros(Float32, window_bins, length(ρ))) # We use a Zygote Buffer here to keep autodifferentiability
-    pad = window_bins ÷ 2 - 1 # a number
-    ρpad = vcat(ρ[end-pad:end], ρ, ρ[1:1+pad]) 
-    for i in 1:length(ρ)
-        ρ_windows[:,i] = ρpad[i:i+window_bins-1]
-    end
-    copy(ρ_windows)  # copy needed due to Zygote.Buffer
-end
-
-function generate_phi(ϕ, ρ)
-    ϕ_func = Zygote.Buffer(zeros(Float32, length(ϕ), length(ρ)))
-    for i in 1:length(ρ)
-        ϕ_func[:,i] = ϕ
-    end
-    copy(ϕ_func)
-end
 
 function generate_inout(ρ_profiles, c1_profiles, ϕ_profiles; window_width, dx)
     window_bins = 2 * round(Int, window_width / dx) + 1
@@ -56,7 +42,30 @@ function generate_inout(ρ_profiles, c1_profiles, ϕ_profiles; window_width, dx)
     reduce(hcat, ρ_windows_all), c1_values_all', reduce(hcat, ϕ_functions_all)
 end
 
-function ϕ(x, params) 
+
+######################################################################################################
+
+function generate_windows(ρ; window_bins)
+    ρ_windows = Zygote.Buffer(zeros(Float32, window_bins, length(ρ))) # We use a Zygote Buffer here to keep autodifferentiability
+    pad = window_bins ÷ 2 - 1 # a number
+    ρpad = vcat(ρ[end-pad:end], ρ, ρ[1:1+pad]) 
+    for i in 1:length(ρ)
+        ρ_windows[:,i] = ρpad[i:i+window_bins-1]
+    end
+    copy(ρ_windows)  # copy needed due to Zygote.Buffer
+end
+
+function generate_phi(ϕ, ρ) 
+    ϕ_func = Zygote.Buffer(zeros(Float32, length(ϕ), length(ρ)))
+    for i in 1:length(ρ)
+        ϕ_func[:,i] = ϕ
+    end
+    copy(ϕ_func)
+end
+
+
+
+function ϕ(x, params) # converts the discrete pair potential to a function
     l = length(params)
     Δ = 1.5/(l-1)
     if 0 <= x < 1.5
@@ -70,11 +79,11 @@ function ϕ(x, params)
     end
 end
 
-function get_params(f::Function)
-    grid = collect(0:0.01:1.5-0.01)
+function get_params(f::Function) #converts a function to a discrete array of function values for the pair potential
+    grid = collect(0:0.01:1.5-0.01) #we use 150 input nodes for the pair potential 
     params = f.(grid)
     for i=1:length(params)
-        if params[i] > 9 || isinf(params[i]) == true 
+        if params[i] > 9 || isinf(params[i]) == true #the results are very close to the case when the pair potential is infinite
             params[i] = 9
         end
     end 
@@ -121,10 +130,10 @@ function minimize(L::Number, μ::Number, T::Number, ϕ::Vector{Float32}, Vext::F
 end
 
 function MINIMIZE(L::Number, μ::Number, T::Number, ϕ::Function, Vext::Function, model)
-    s = 1/T
+    s = 1/T #thermal scaling
     G(x) = s*Vext(x)
     Φ(x) = s*ϕ(x)
-    params = get_params(Φ)
+    params = get_params(Φ) #discrete input values from a function
     params = Float32.(params)
     μ = s*μ
     T = 1
