@@ -3,7 +3,7 @@
 This repository contains code, data and a neural model for the methods presented in:
 
 **Metadensity functional theory for classical fluids: Extracting the pair potential**  
-*Stefanie M. Kampa, Florian Sammüller, Matthias Schmidt and Robert Evans, [Phys.Rev.Lett **134**, 107301](https://doi.org/10.1103/PhysRevLett.134.107301) (2025); [arXiv:2411.06972](https://arxiv.org/abs/2411.06972).*
+*Stefanie M. Kampa, Florian Sammüller, Matthias Schmidt and Robert Evans, [Phys.Rev.Lett **134**, 107301](https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.134.107301) (2025); [arXiv:2411.06972](https://arxiv.org/abs/2411.06972).*
 
 
 ## Instructions
